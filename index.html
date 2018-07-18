@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>canvas刮刮卡</title>
+	<style>
+	*{
+		margin: 0;
+		padding: 0;
+	}
+	html{
+		font-size: 16px;
+	}
+	.container{
+		/* width: 1200px; */
+		margin: 50px auto;
+		text-align: center;
+	}
+	.box{
+		display: inline-block;
+		width: 300px;
+		height: 200px;
+		background: skyblue;
+		margin: 30px auto;
+	}
+	.test{
+		width: 1rem;
+		height: 100px;
+		background: #eee;
+	}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="box">
+			<canvas id="canvas"></canvas>
+		</div>
+		<div class="test"></div>
+	</div>
+	<script src="./js/jquery-3.3.1.js"></script>
+	<script>
+	var box =  document.querySelector('.box')
+	var canvas =  document.querySelector('#canvas')
+
+	var boxWidth = box.offsetWidth;
+	var boxHeight = box.offsetHeight;
+
+	canvas.setAttribute('width',boxWidth + 'px')  
+	canvas.setAttribute('height',boxHeight + 'px')
+
+	var ctx = canvas.getContext('2d');
+
+	ctx.beginPath();
+	ctx.fillStyle = '#939393'
+	ctx.rect(0,0,boxWidth,boxHeight);
+	ctx.closePath();
+	ctx.fill();
+
+	var isDown = false;
+	var pointerArr = [];
+	var xPointer = 0;
+	var yPointer = 0;
+
+	//canvas偏移量：在收集点时需要把canvas元素本身的偏移量计算出去，
+	//不然擦除时不在所触摸的点，这个问题暂时相对于移动端来说
+	var canvasOffsetLeft = canvas.offsetLeft;
+	var canvasOffsetTop = canvas.offsetTop;
+
+
+	//pc，移动事件兼容写法
+    var hastouch = "ontouchstart" in window ? true : false,
+    tapstart = hastouch ? "touchstart" : "mousedown",
+    tapmove = hastouch ? "touchmove" : "mousemove",
+    tapend = hastouch ? "touchend" : "mouseup";
+
+	//鼠标或手按下
+	canvas.addEventListener(tapstart,function(event){
+		console.log("e.touches-->",event.touches)
+		console.log("e.targetTouches-->",event.targetTouches)
+		var e = window.event || event;
+		this.style.cursor = 'move';
+		isDown = true;
+		xPointer = hastouch ? e.targetTouches[0].pageX - canvasOffsetLeft:e.clientX - this.offsetLeft;
+		yPointer = hastouch ? e.targetTouches[0].pageY - canvasOffsetTop:e.clientY - this.offsetTop;
+		pointerArr.push([xPointer,yPointer]);
+		circleReset(ctx)
+	})
+
+	//按下后移动
+	canvas.addEventListener(tapmove,function(event){
+		var e=window.event||event;//2017-12-06
+        if (isDown) {
+        xPointer = hastouch ? e.targetTouches[0].pageX - canvasOffsetLeft: e.clientX - this.offsetLeft;;
+        yPointer = hastouch ? e.targetTouches[0].pageY - canvasOffsetTop: e.clientY - this.offsetTop;;
+        pointerArr.push([xPointer, yPointer]);
+        circleReset(ctx);
+        }
+	})
+
+	//鼠标抬起取消事件
+    canvas.addEventListener(tapend, function(event) {
+        isDown = false;
+        pointerArr = [];
+    });
+
+	//圆形橡皮擦
+	function circleReset(ctx){
+		ctx.save();
+		ctx.beginPath();
+		ctx.moveTo(pointerArr[0][0],pointerArr[0][1]);
+		ctx.lineCap = 'round';
+		ctx.lineJoin = 'round';
+		ctx.lineWidth = 60;
+		ctx.globalCompositeOperation = "destination-out"
+		if(pointerArr.length == 1){
+			ctx.lineTo(pointerArr[0][0]+1,pointerArr[0][1]+1)
+		}else{
+			for(var i=1;i<pointerArr.length;i++){
+				ctx.lineTo(pointerArr[i][0],pointerArr[i][1])
+				ctx.moveTo(pointerArr[i][0],pointerArr[i][1]);
+			}
+		}
+
+		ctx.closePath();
+		ctx.stroke();
+		ctx.restore();
+	}
+
+	</script>
+</body>
+</html>
